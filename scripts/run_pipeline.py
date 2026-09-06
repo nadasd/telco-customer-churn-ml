@@ -1,7 +1,8 @@
 import sys
 import os
 import mlflow
-import mlflow.sklearn
+import mlflow.pyfunc
+from mlflow.models import infer_signature
 
 # MLflow server
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
@@ -31,6 +32,16 @@ from src.tune import tune_model
 from src.train import train_model
 from src.select_threshold import select_threshold
 from src.evaluate import evaluate_model
+from src.model_artifact import (
+    ARTIFACT_VERSION,
+    RANDOM_SEED,
+    REGISTERED_MODEL_NAME,
+    TelcoChurnArtifact,
+    build_artifact_metadata,
+    build_raw_feature_schema,
+    build_raw_input_example,
+    build_serving_pipeline,
+)
 
 
 def main():
@@ -52,6 +63,8 @@ def main():
         df = load_data(
             "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
         )
+
+        raw_input_example = build_raw_input_example(df)
 
         print(f"Data loaded: {df.shape}")
 
@@ -127,6 +140,8 @@ def main():
 
         # Log hyperparameters in MLflow
         mlflow.log_params(best_params)
+        mlflow.log_param("seed", RANDOM_SEED)
+        mlflow.log_param("artifact_version", ARTIFACT_VERSION)
 
 
         # ====================================================
@@ -211,13 +226,66 @@ def main():
 
         print("\n11. Logging model to MLflow...")
 
-        mlflow.sklearn.log_model(
-            model,
+        raw_feature_schema = build_raw_feature_schema(
+            raw_input_example
+        )
+
+        serving_pipeline = build_serving_pipeline(
+            preprocessor=preprocessor,
+            classifier=model,
+            raw_input_example=raw_input_example,
+        )
+
+        artifact_metadata = build_artifact_metadata(
+            raw_feature_schema=raw_feature_schema,
+            threshold=threshold,
+            model_parameters=best_params,
+            test_metrics=results,
+        )
+
+        artifact_model = TelcoChurnArtifact(
+            pipeline=serving_pipeline,
+            threshold=threshold,
+            raw_feature_schema=raw_feature_schema,
+            metadata=artifact_metadata,
+        )
+
+        reference_output = artifact_model.predict(
+            context=None,
+            model_input=raw_input_example,
+        )
+        artifact_metadata["reference_output"] = {
+            "churn_probability": float(
+                reference_output.iloc[0]["churn_probability"]
+            ),
+            "churn_prediction": int(
+                reference_output.iloc[0]["churn_prediction"]
+            ),
+        }
+
+        signature = infer_signature(
+            raw_input_example,
+            reference_output,
+        )
+
+        model_info = mlflow.pyfunc.log_model(
+            python_model=artifact_model,
             name="model",
-            skops_trusted_types=[
-                "xgboost.core.Booster",
-                "xgboost.sklearn.XGBClassifier"
-            ]
+            code_paths=["src"],
+            signature=signature,
+            input_example=raw_input_example,
+            metadata=artifact_metadata,
+            registered_model_name=REGISTERED_MODEL_NAME,
+            tags={
+                "artifact_version": ARTIFACT_VERSION,
+                "serving_contract": "raw-19-features",
+            },
+        )
+
+        print(f"Model URI: {model_info.model_uri}")
+        print(
+            "Registered model version: "
+            f"{model_info.registered_model_version}"
         )
 
 
