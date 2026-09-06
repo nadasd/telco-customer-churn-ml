@@ -1,0 +1,11 @@
+# Runtime dependencies for the modular training pipeline (Python 3.12).
+# Versions match the foundation environment inspected on 2026-09-06.
+numpy==2.5.2
+pandas==2.2.3
+scikit-learn==1.9.0
+xgboost-cpu==3.4.1
+optuna==4.9.0
+mlflow==3.15.1
+great-expectations==1.21.0
+skops==0.14.0
+joblib==1.5.3

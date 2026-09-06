@@ -2,28 +2,50 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.egg-info/
+.python-version
 
-# Virtual environment
+# Virtual environments
 .venv/
+.venv-*/
 venv/
+venv-*/
 env/
 
-# Jupyter
+# Test, type-checker, linter, and coverage caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Jupyter checkpoints (official notebooks remain trackable)
 .ipynb_checkpoints/
 
 # Environment variables
 .env
 .env.*
+!.env.example
 
-# ML artifacts
-mlruns/
+# Local MLflow state and generated artifacts
+/mlflow.db
+/mlartifacts/
+/mlruns/
+
+# Generated models
+/models/
+/artifacts/
 *.pkl
 *.joblib
 *.model
+*.skops
+*.ubj
 
-# Data
-data/raw/*
-data/processed/*
+# Local data
+/data/
 
 # Logs
 *.log
