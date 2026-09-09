@@ -2,3 +2,5 @@
 
 # Test runner; test creation is intentionally deferred to the pipeline refactor.
 pytest==8.4.2
+
+httpx2==2.12.0
