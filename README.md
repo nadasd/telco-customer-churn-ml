@@ -238,3 +238,37 @@ python -m compileall -q src tests
 - Intégration continue avec GitHub Actions ;
 - Déploiement ;
 - Monitoring de l’API et des performances du modèle.
+## Exécution avec Docker Compose
+
+Docker Compose démarre deux services :
+
+- `mlflow` : suivi des expériences et registre du modèle ;
+- `api` : API FastAPI qui charge `TelcoChurnXGBoost/2`.
+
+### Démarrer les services
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Les deux services doivent afficher l’état `healthy`.
+
+- API : http://127.0.0.1:8000/docs
+- MLflow : http://127.0.0.1:5000
+
+### Arrêter les services
+
+```powershell
+docker compose down
+```
+
+Cette commande supprime les conteneurs et le réseau Docker, mais conserve `mlflow.db` et `mlartifacts` sur la machine hôte.
+
+### Vérifier l’API
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/health"
+```
+
+L’API doit retourner `status: ok` et l’URI `models:/TelcoChurnXGBoost/2`.
