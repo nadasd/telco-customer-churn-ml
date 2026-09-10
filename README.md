@@ -1,4 +1,5 @@
 # Telco Customer Churn ML
+[![CI](https://github.com/nadasd/telco-customer-churn-ml/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nadasd/telco-customer-churn-ml/actions/workflows/ci.yml)
 
 Projet de Machine Learning de prédiction du risque de résiliation des clients d’une entreprise de télécommunications.
 
