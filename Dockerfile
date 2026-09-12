@@ -14,5 +14,4 @@ RUN python -m pip install --upgrade pip && \
 COPY src ./src
 
 EXPOSE 8000
-
-CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "exec python -m uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
