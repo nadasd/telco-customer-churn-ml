@@ -273,3 +273,4 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/health"
 ```
 
 L’API doit retourner `status: ok` et l’URI `models:/TelcoChurnXGBoost/2`.
+"# Telco Customer Churn ML" | Out-File README.md -Encoding utf8
