@@ -2,9 +2,13 @@
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - deploy/railway
+
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -40,5 +44,9 @@ jobs:
         run: python -m compileall -q src tests
 
       - name: Run tests
-        run: python -m pytest -q -rs
+        env:
+          TELCO_MODEL_URI: ${{ github.workspace }}/model
+        run: python -m pytest -v
 
+      - name: Build API Docker image
+        run: docker build -t telco-churn-api:ci .

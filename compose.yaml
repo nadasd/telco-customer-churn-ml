@@ -3,6 +3,7 @@
     build:
       context: .
       dockerfile: Dockerfile.mlflow
+
     image: telco-churn-mlflow:1.0.0
 
     command:
@@ -26,6 +27,7 @@
       - type: bind
         source: ./mlflow.db
         target: /mlflow/mlflow.db
+
       - type: bind
         source: ./mlartifacts
         target: /mlflow/mlartifacts
@@ -34,7 +36,13 @@
       - "5000:5000"
 
     healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:5000/health', timeout=3)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from urllib.request import urlopen; urlopen('http://127.0.0.1:5000/health', timeout=3)"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,21 +52,23 @@
     build:
       context: .
       dockerfile: Dockerfile
+
     image: telco-churn-api:1.0.0
 
     environment:
-      MLFLOW_TRACKING_URI: "http://mlflow:5000"
-      MODEL_URI: "models:/TelcoChurnXGBoost/2"
+      MODEL_URI: "/app/model"
 
     ports:
       - "8000:8000"
 
-    depends_on:
-      mlflow:
-        condition: service_healthy
-
     healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health', timeout=10)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health', timeout=10)"
+        ]
       interval: 30s
       timeout: 15s
       retries: 3

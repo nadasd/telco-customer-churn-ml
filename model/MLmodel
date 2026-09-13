@@ -1,0 +1,113 @@
+artifact_path: mlflow-artifacts:/2/models/m-24fc78904fbd445d809d409f4968bb29/artifacts
+flavors:
+  python_function:
+    cloudpickle_version: 3.1.2
+    code: code
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.12.10
+    streamable: false
+is_signature_from_type_hint: false
+metadata:
+  artifact_version: 1.0.0
+  decision_threshold: 0.1
+  model_parameters:
+    colsample_bytree: 0.7616836158348025
+    gamma: 3.655973613149342
+    learning_rate: 0.15222408260908737
+    max_depth: 6
+    min_child_weight: 8
+    n_estimators: 237
+    subsample: 0.7619484469358706
+  random_seed: 42
+  raw_feature_schema:
+  - name: gender
+    pandas_dtype: object
+  - name: SeniorCitizen
+    pandas_dtype: int64
+  - name: Partner
+    pandas_dtype: object
+  - name: Dependents
+    pandas_dtype: object
+  - name: tenure
+    pandas_dtype: int64
+  - name: PhoneService
+    pandas_dtype: object
+  - name: MultipleLines
+    pandas_dtype: object
+  - name: InternetService
+    pandas_dtype: object
+  - name: OnlineSecurity
+    pandas_dtype: object
+  - name: OnlineBackup
+    pandas_dtype: object
+  - name: DeviceProtection
+    pandas_dtype: object
+  - name: TechSupport
+    pandas_dtype: object
+  - name: StreamingTV
+    pandas_dtype: object
+  - name: StreamingMovies
+    pandas_dtype: object
+  - name: Contract
+    pandas_dtype: object
+  - name: PaperlessBilling
+    pandas_dtype: object
+  - name: PaymentMethod
+    pandas_dtype: object
+  - name: MonthlyCharges
+    pandas_dtype: float64
+  - name: TotalCharges
+    pandas_dtype: float64
+  reference_output:
+    churn_prediction: 1
+    churn_probability: 0.7028769850730896
+  registered_model_name: TelcoChurnXGBoost
+  runtime_versions:
+    mlflow: 3.15.1
+    numpy: 2.5.2
+    pandas: 2.2.3
+    python: 3.12.10
+    scikit-learn: 1.9.0
+    xgboost-cpu: 3.4.1
+  test_metrics:
+    accuracy: 0.6206244087038789
+    f1_score: 0.5617486338797815
+    precision: 0.40536277602523657
+    recall: 0.9145907473309609
+    threshold: 0.1
+mlflow_version: 3.15.1
+model_id: m-24fc78904fbd445d809d409f4968bb29
+model_size_bytes: 205551
+model_uuid: m-24fc78904fbd445d809d409f4968bb29
+prompts: null
+run_id: 8dbd192a66df423588c5390ebe5ff4cc
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "string", "name": "gender", "required": true}, {"type": "long",
+    "name": "SeniorCitizen", "required": true}, {"type": "string", "name": "Partner",
+    "required": true}, {"type": "string", "name": "Dependents", "required": true},
+    {"type": "long", "name": "tenure", "required": true}, {"type": "string", "name":
+    "PhoneService", "required": true}, {"type": "string", "name": "MultipleLines",
+    "required": true}, {"type": "string", "name": "InternetService", "required": true},
+    {"type": "string", "name": "OnlineSecurity", "required": true}, {"type": "string",
+    "name": "OnlineBackup", "required": true}, {"type": "string", "name": "DeviceProtection",
+    "required": true}, {"type": "string", "name": "TechSupport", "required": true},
+    {"type": "string", "name": "StreamingTV", "required": true}, {"type": "string",
+    "name": "StreamingMovies", "required": true}, {"type": "string", "name": "Contract",
+    "required": true}, {"type": "string", "name": "PaperlessBilling", "required":
+    true}, {"type": "string", "name": "PaymentMethod", "required": true}, {"type":
+    "double", "name": "MonthlyCharges", "required": true}, {"type": "double", "name":
+    "TotalCharges", "required": true}]'
+  outputs: '[{"type": "double", "name": "churn_probability", "required": true}, {"type":
+    "long", "name": "churn_prediction", "required": true}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-09-06 15:16:27.429671'
