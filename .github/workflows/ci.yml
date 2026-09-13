@@ -36,6 +36,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
+          pip install -r requirements-ui.txt
 
       - name: Validate Docker Compose configuration
         run: docker compose config -q
@@ -50,3 +51,6 @@ jobs:
 
       - name: Build API Docker image
         run: docker build -t telco-churn-api:ci .
+
+      - name: Build UI Docker image
+        run: docker build -f Dockerfile.ui -t telco-churn-ui:ci .
