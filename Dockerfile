@@ -12,6 +12,8 @@ RUN python -m pip install --upgrade pip && \
     python -m pip install -r requirements.txt
 
 COPY src ./src
+COPY model ./model
 
 EXPOSE 8000
+
 CMD ["sh", "-c", "exec python -m uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

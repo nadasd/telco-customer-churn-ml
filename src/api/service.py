@@ -10,9 +10,8 @@ from src.api.schemas import CustomerInput
 
 
 def get_model_uri() -> str:
-    """Retourne le modèle choisi pour servir les prédictions."""
-    return os.getenv("MODEL_URI", "models:/TelcoChurnXGBoost/2")
-
+    """Retourne le chemin du modèle utilisé pour les prédictions."""
+    return os.getenv("MODEL_URI", "model")
 
 def get_tracking_uri() -> str:
     """Retourne l'adresse du serveur MLflow."""
@@ -22,7 +21,6 @@ def get_tracking_uri() -> str:
 @lru_cache
 def load_model(model_uri: str) -> Any:
     """Charge le modèle une seule fois par URI."""
-    mlflow.set_tracking_uri(get_tracking_uri())
     return mlflow.pyfunc.load_model(model_uri)
 
 

@@ -8,9 +8,9 @@ from sklearn.metrics import (
 
 def evaluate_model(
     model,
-    X_test,
+    X_test_processed,
     y_test,
-    threshold: float
+    threshold=0.12
 ):
 
     # Get probability of churn
