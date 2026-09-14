@@ -26,10 +26,15 @@ def select_threshold(
         X_val_processed
     )[:, 1]
 
-    thresholds = np.arange(
-        0.05,
-        0.51,
-        0.01
+    # Candidate thresholds from 0.05 to 0.50
+    # Rounded to avoid floating-point comparison issues
+    thresholds = np.round(
+        np.arange(
+            0.05,
+            0.51,
+            0.01
+        ),
+        2
     )
 
     results = []
@@ -78,13 +83,11 @@ def select_threshold(
             "No threshold satisfies the minimum precision."
         )
 
-    # Convert to DataFrame
     import pandas as pd
 
     results_df = pd.DataFrame(results)
 
-    # We prioritize recall,
-    # then F1 score
+    # Prioritize recall, then F1
     best = results_df.sort_values(
         by=["recall", "f1"],
         ascending=False
