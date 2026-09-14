@@ -73,3 +73,19 @@
       timeout: 15s
       retries: 3
       start_period: 30s
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+
+    image: telco-churn-ui:1.0.0
+
+    environment:
+      API_URL: "http://api:8000"
+
+    ports:
+      - "7860:7860"
+
+    depends_on:
+      api:
+        condition: service_healthy
