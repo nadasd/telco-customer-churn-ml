@@ -8,7 +8,7 @@ from sklearn.metrics import (
 
 def evaluate_model(
     model,
-    X_test,
+    X_test_processed,
     y_test,
     threshold: float
 ):
