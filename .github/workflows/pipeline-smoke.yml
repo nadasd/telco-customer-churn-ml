@@ -1,0 +1,69 @@
+name: Pipeline Smoke
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "scripts/run_pipeline.py"
+      - "src/clean.py"
+      - "src/validate_data.py"
+      - "src/split_data.py"
+      - "src/preprocess.py"
+      - "src/tune.py"
+      - "src/train.py"
+      - "src/select_threshold.py"
+      - "src/evaluate.py"
+      - "src/model_artifact.py"
+      - "requirements*.txt"
+      - "tests/test_pipeline_smoke.py"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/run_pipeline.py"
+      - "src/clean.py"
+      - "src/validate_data.py"
+      - "src/split_data.py"
+      - "src/preprocess.py"
+      - "src/tune.py"
+      - "src/train.py"
+      - "src/select_threshold.py"
+      - "src/evaluate.py"
+      - "src/model_artifact.py"
+      - "requirements*.txt"
+      - "tests/test_pipeline_smoke.py"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Retrieve source code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run pipeline smoke test
+        run: |
+          python -m pytest tests/test_pipeline_smoke.py -v -s
