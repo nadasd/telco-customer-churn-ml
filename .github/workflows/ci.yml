@@ -47,10 +47,42 @@ jobs:
       - name: Run tests
         env:
           TELCO_MODEL_URI: ${{ github.workspace }}/model
-        run: python -m pytest -v
+        run: python -m pytest -v --ignore=tests/test_pipeline_smoke.py
 
       - name: Build API Docker image
         run: docker build -t telco-churn-api:ci .
 
       - name: Build UI Docker image
         run: docker build -f Dockerfile.ui -t telco-churn-ui:ci .
+
+
+  pipeline-smoke:
+    name: Pipeline Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    needs:
+      - test
+
+    steps:
+      - name: Retrieve source code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run training pipeline smoke test
+        run: |
+          python -m pytest tests/test_pipeline_smoke.py -v -s
