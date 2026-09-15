@@ -1,3 +1,5 @@
+N_TRIALS = 100
+
 def tune_model(X_train, y_train, preprocessor):
 
     import optuna
@@ -57,7 +59,7 @@ def tune_model(X_train, y_train, preprocessor):
 
     study.optimize(
         objective,
-        n_trials=100
+        n_trials=N_TRIALS
     )
 
     print("\nBest Optuna parameters:")

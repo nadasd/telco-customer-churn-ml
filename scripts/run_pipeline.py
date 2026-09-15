@@ -2,7 +2,10 @@ import sys
 import os
 import mlflow
 import mlflow.pyfunc
-from mlflow.models import infer_signature
+from mlflow.models import ModelSignature
+from mlflow.types.schema import Schema, ColSpec
+import hashlib
+import subprocess
 
 # MLflow server
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
@@ -28,7 +31,7 @@ from src.clean import clean_data
 from src.validate_data import validate_data
 from src.split_data import split_data
 from src.preprocess import create_preprocessor
-from src.tune import tune_model
+from src.tune import tune_model, N_TRIALS
 from src.train import train_model
 from src.select_threshold import select_threshold
 from src.evaluate import evaluate_model
@@ -43,7 +46,55 @@ from src.model_artifact import (
     build_serving_pipeline,
 )
 
+DATA_PATH = "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+MIN_PRECISION = 0.40
 
+
+def compute_dataset_hash(df):
+    csv_bytes = df.to_csv(
+        index=False,
+        lineterminator="\n",
+    ).encode("utf-8")
+
+    return hashlib.sha256(csv_bytes).hexdigest()
+
+
+def get_git_commit():
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return "unknown"
+def build_mlflow_schema(df):
+    dtype_mapping = {
+        "object": "string",
+        "int64": "long",
+        "float64": "double",
+        "bool": "boolean",
+    }
+
+    columns = []
+
+    for name, dtype in df.dtypes.items():
+        dtype_name = str(dtype)
+
+        if dtype_name not in dtype_mapping:
+            raise TypeError(
+                f"Unsupported dtype for MLflow signature: "
+                f"{name}={dtype_name}"
+            )
+
+        columns.append(
+            ColSpec(
+                dtype_mapping[dtype_name],
+                name,
+                required=True,
+            )
+        )
+
+    return Schema(columns)
 def main():
 
     # ========================================================
@@ -60,13 +111,22 @@ def main():
 
         print("\n1. Loading data...")
 
-        df = load_data(
-            "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-        )
+        df = load_data(DATA_PATH)
 
         raw_input_example = build_raw_input_example(df)
 
         print(f"Data loaded: {df.shape}")
+        dataset_rows, dataset_columns = df.shape
+
+        mlflow.log_param("dataset_rows", dataset_rows)
+        mlflow.log_param("dataset_columns", dataset_columns)
+        dataset_hash = compute_dataset_hash(df)
+
+        mlflow.set_tag("dataset_source", DATA_PATH)
+        mlflow.set_tag("dataset_sha256", dataset_hash)
+        git_commit = get_git_commit()
+
+        mlflow.set_tag("git_commit", git_commit)
 
 
         # ====================================================
@@ -142,6 +202,8 @@ def main():
         mlflow.log_params(best_params)
         mlflow.log_param("seed", RANDOM_SEED)
         mlflow.log_param("artifact_version", ARTIFACT_VERSION)
+        mlflow.log_param("n_trials", N_TRIALS)
+        mlflow.log_param("min_precision", MIN_PRECISION)
 
 
         # ====================================================
@@ -180,7 +242,7 @@ def main():
             model,
             X_val_processed,
             y_val,
-            min_precision=0.40
+            min_precision=MIN_PRECISION
         )
 
         print(f"\nSelected threshold: {threshold}")
@@ -262,11 +324,10 @@ def main():
                 reference_output.iloc[0]["churn_prediction"]
             ),
         }
-
-        signature = infer_signature(
-            raw_input_example,
-            reference_output,
-        )
+        signature = ModelSignature(
+    inputs=build_mlflow_schema(raw_input_example),
+    outputs=build_mlflow_schema(reference_output),
+)
 
         model_info = mlflow.pyfunc.log_model(
             python_model=artifact_model,

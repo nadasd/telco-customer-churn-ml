@@ -2,7 +2,6 @@ import os
 from types import SimpleNamespace
 
 import mlflow
-import optuna
 import pandas as pd
 
 from src.load_data import load_data as real_load_data
@@ -209,33 +208,18 @@ def test_training_pipeline_smoke(
     # 4. Reduce Optuna from 100 trials to 1
     # --------------------------------------------------
 
-    # We do NOT replace tune_model().
-    # The real Optuna objective and real XGBoost CV still
-    # execute. We only limit Study.optimize() to one trial
-    # for this test.
-    original_optimize = (
-        optuna.study.Study.optimize
-    )
-
-    def optimize_one_trial(
-        self,
-        func,
-        *args,
-        **kwargs,
-    ):
-        kwargs["n_trials"] = 1
-
-        return original_optimize(
-            self,
-            func,
-            *args,
-            **kwargs,
-        )
+    import src.tune as tune_module
 
     monkeypatch.setattr(
-        optuna.study.Study,
-        "optimize",
-        optimize_one_trial,
+        tune_module,
+        "N_TRIALS",
+        1,
+    )
+
+    monkeypatch.setattr(
+        pipeline,
+        "N_TRIALS",
+        1,
     )
 
     # --------------------------------------------------
@@ -295,9 +279,31 @@ def test_training_pipeline_smoke(
         assert 0 <= results["f1_score"] <= 1
 
         assert "model_uri" in captured
+                # --------------------------------------------------
+        # 7. Verify MLflow provenance
+        # --------------------------------------------------
+
+        runs = mlflow.search_runs(
+            experiment_names=["Telco-Customer-Churn"],
+            order_by=["start_time DESC"],
+            max_results=1,
+        )
+
+        assert len(runs) == 1
+
+        run = runs.iloc[0]
+
+        assert run["params.n_trials"] == "1"
+        assert run["params.min_precision"] == "0.4"
+        assert run["params.dataset_rows"] == "240"
+        assert run["params.dataset_columns"] == "21"
+
+        assert run["tags.dataset_source"]
+        assert len(run["tags.dataset_sha256"]) == 64
+        assert run["tags.git_commit"]
 
         # --------------------------------------------------
-        # 7. Reload the artifact actually created
+        # 8. Reload the artifact actually created
         # --------------------------------------------------
 
         loaded_model = (
