@@ -69,6 +69,8 @@ src/select_threshold.py  Threshold selection
 src/evaluate.py          Test metrics
 src/model_artifact.py    Self-contained MLflow pyfunc model
 scripts/run_pipeline.py  Canonical training orchestration
+configs/training.toml    Central training configuration
+src/config.py             Training configuration loader
 tests/                   Unit, API, artifact, UI, and smoke tests
 model/                   Tracked inference artifact and metadata
 .github/workflows/       CI and pipeline smoke workflow
@@ -98,7 +100,7 @@ The canonical entry point is `scripts/run_pipeline.py`.
 - Thresholds: `0.05..0.50` in `0.01` steps; precision must be at least `0.40`; maximize recall, then F1.
 - Test metrics are computed after threshold selection on validation data.
 
-The Optuna sampler is not explicitly seeded, so the full search is not guaranteed bit-for-bit reproducible.
+Optuna uses a seeded TPESampler. Optuna/CV and XGBoost use the configured `n_jobs` value (`-1` currently), so exact bit-for-bit reproduction can still depend on the runtime, dataset bytes, platform, and parallel execution order.
 
 ## Model Performance
 
@@ -214,7 +216,7 @@ docker compose up -d --build
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-Training uses the canonical script and the local MLflow address `http://127.0.0.1:5000`:
+Training uses the canonical script and `configs/training.toml` for the dataset path, seeds, split, Optuna, XGBoost, threshold, and MLflow settings:
 
 ```powershell
 python scripts/run_pipeline.py

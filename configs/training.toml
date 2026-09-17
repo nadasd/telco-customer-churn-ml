@@ -1,0 +1,60 @@
+[project]
+seed = 42
+artifact_version = "1.0.0"
+
+[data]
+path = "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+
+[split]
+train_fraction = 0.70
+validation_fraction = 0.15
+test_fraction = 0.15
+stratify = true
+
+[optuna]
+n_trials = 100
+sampler = "TPESampler"
+direction = "maximize"
+cv_folds = 5
+scoring = "recall"
+n_jobs = -1
+
+[optuna.search_space]
+n_estimators_min = 100
+n_estimators_max = 500
+
+max_depth_min = 2
+max_depth_max = 6
+
+learning_rate_min = 0.01
+learning_rate_max = 0.20
+learning_rate_log = true
+
+subsample_min = 0.70
+subsample_max = 1.00
+
+colsample_bytree_min = 0.70
+colsample_bytree_max = 1.00
+
+min_child_weight_min = 1
+min_child_weight_max = 10
+
+gamma_min = 0.0
+gamma_max = 5.0
+
+[xgboost]
+eval_metric = "logloss"
+objective = "binary:logistic"
+n_jobs = -1
+
+[threshold]
+minimum = 0.05
+maximum = 0.50
+step = 0.01
+minimum_precision = 0.40
+
+[mlflow]
+tracking_uri = "http://127.0.0.1:5000"
+experiment_name = "Telco-Customer-Churn"
+registered_model_name = "TelcoChurnXGBoost"
+artifact_name = "model"

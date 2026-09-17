@@ -7,9 +7,6 @@ from mlflow.types.schema import Schema, ColSpec
 import hashlib
 import subprocess
 
-# MLflow server
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
-
 
 # ============================================================
 # Add project root to Python path
@@ -21,6 +18,29 @@ sys.path.append(
     )
 )
 
+from src.config import load_training_config
+
+config = load_training_config()
+seed = config["project"]["seed"]
+data_config = config["data"]
+split_config = config["split"]
+optuna_config = config["optuna"]
+xgboost_config = config["xgboost"]
+threshold_config = config["threshold"]
+mlflow_config = config["mlflow"]
+
+tracking_uri = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    mlflow_config["tracking_uri"],
+)
+mlflow.set_tracking_uri(tracking_uri)
+
+import random
+import numpy as np
+
+random.seed(seed)
+np.random.seed(seed)
+
 
 # ============================================================
 # Imports
@@ -31,14 +51,11 @@ from src.clean import clean_data
 from src.validate_data import validate_data
 from src.split_data import split_data
 from src.preprocess import create_preprocessor
-from src.tune import tune_model, N_TRIALS
+from src.tune import tune_model
 from src.train import train_model
 from src.select_threshold import select_threshold
 from src.evaluate import evaluate_model
 from src.model_artifact import (
-    ARTIFACT_VERSION,
-    RANDOM_SEED,
-    REGISTERED_MODEL_NAME,
     TelcoChurnArtifact,
     build_artifact_metadata,
     build_raw_feature_schema,
@@ -46,9 +63,10 @@ from src.model_artifact import (
     build_serving_pipeline,
 )
 
-DATA_PATH = "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-MIN_PRECISION = 0.40
-
+DATA_PATH = data_config["path"]
+MIN_PRECISION = threshold_config["minimum_precision"]
+ARTIFACT_VERSION = config["project"]["artifact_version"]
+REGISTERED_MODEL_NAME = mlflow_config["registered_model_name"]
 
 def compute_dataset_hash(df):
     csv_bytes = df.to_csv(
@@ -101,7 +119,7 @@ def main():
     # MLflow experiment
     # ========================================================
 
-    mlflow.set_experiment("Telco-Customer-Churn")
+    mlflow.set_experiment(mlflow_config["experiment_name"])
 
     with mlflow.start_run():
 
@@ -167,7 +185,14 @@ def main():
             y_train,
             y_val,
             y_test
-        ) = split_data(df)
+        ) = split_data(
+            df,
+            train_fraction=split_config["train_fraction"],
+            validation_fraction=split_config["validation_fraction"],
+            test_fraction=split_config["test_fraction"],
+            random_state=seed,
+            stratify=split_config.get("stratify", True),
+        )
 
         print(f"Train: {X_train.shape}")
         print(f"Validation: {X_val.shape}")
@@ -192,7 +217,10 @@ def main():
         best_params = tune_model(
             X_train,
             y_train,
-            preprocessor
+            preprocessor,
+            optuna_config=optuna_config,
+            xgboost_config=xgboost_config,
+            seed=seed,
         )
 
         print("\nBest parameters:")
@@ -200,9 +228,9 @@ def main():
 
         # Log hyperparameters in MLflow
         mlflow.log_params(best_params)
-        mlflow.log_param("seed", RANDOM_SEED)
+        mlflow.log_param("seed", seed)
         mlflow.log_param("artifact_version", ARTIFACT_VERSION)
-        mlflow.log_param("n_trials", N_TRIALS)
+        mlflow.log_param("n_trials", optuna_config["n_trials"])
         mlflow.log_param("min_precision", MIN_PRECISION)
 
 
@@ -228,7 +256,9 @@ def main():
             y_val,
             X_test,
             y_test,
-            best_params
+            best_params,
+            xgboost_config=xgboost_config,
+            seed=seed,
         )
 
 
@@ -242,7 +272,10 @@ def main():
             model,
             X_val_processed,
             y_val,
-            min_precision=MIN_PRECISION
+            minimum=threshold_config["minimum"],
+            maximum=threshold_config["maximum"],
+            step=threshold_config["step"],
+            min_precision=threshold_config["minimum_precision"],
         )
 
         print(f"\nSelected threshold: {threshold}")
@@ -303,6 +336,9 @@ def main():
             threshold=threshold,
             model_parameters=best_params,
             test_metrics=results,
+            artifact_version=ARTIFACT_VERSION,
+            registered_model_name=REGISTERED_MODEL_NAME,
+            random_seed=seed,
         )
 
         artifact_model = TelcoChurnArtifact(
@@ -331,7 +367,7 @@ def main():
 
         model_info = mlflow.pyfunc.log_model(
             python_model=artifact_model,
-            name="model",
+            name=mlflow_config["artifact_name"],
             code_paths=["src"],
             signature=signature,
             input_example=raw_input_example,

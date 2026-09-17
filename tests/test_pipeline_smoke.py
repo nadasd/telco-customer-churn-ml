@@ -208,17 +208,9 @@ def test_training_pipeline_smoke(
     # 4. Reduce Optuna from 100 trials to 1
     # --------------------------------------------------
 
-    import src.tune as tune_module
-
-    monkeypatch.setattr(
-        tune_module,
-        "N_TRIALS",
-        1,
-    )
-
-    monkeypatch.setattr(
-        pipeline,
-        "N_TRIALS",
+    monkeypatch.setitem(
+        pipeline.optuna_config,
+        "n_trials",
         1,
     )
 

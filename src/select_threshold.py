@@ -12,7 +12,10 @@ def select_threshold(
     model,
     X_val_processed,
     y_val,
-    min_precision=0.40
+    minimum,
+    maximum,
+    step,
+    min_precision,
 ):
     """
     Select the threshold using the validation set.
@@ -26,13 +29,13 @@ def select_threshold(
         X_val_processed
     )[:, 1]
 
-    # Candidate thresholds from 0.05 to 0.50
+    # Candidate thresholds from the configured range
     # Rounded to avoid floating-point comparison issues
     thresholds = np.round(
         np.arange(
-            0.05,
-            0.51,
-            0.01
+            minimum,
+            maximum + step / 2,
+            step
         ),
         2
     )
