@@ -314,6 +314,7 @@ def test_training_pipeline_smoke(
             loaded_model.predict(
                 raw_example
             )
+            
         )
 
         assert len(predictions) > 0

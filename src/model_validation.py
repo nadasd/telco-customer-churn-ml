@@ -1,7 +1,24 @@
 import json
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    PrecisionRecallDisplay,
+    RocCurveDisplay,
+    f1_score,
+    precision_score,
+    recall_score,
+)
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import Pipeline
+from xgboost import XGBClassifier
 import numpy as np
 
 from sklearn.metrics import (
@@ -281,3 +298,46 @@ def create_validation_artifacts(
             / "metrics_summary.json"
         ),
     )
+def evaluate_cv_stability(
+    X_train,
+    y_train,
+    preprocessor,
+    best_params,
+    optuna_config,
+    xgboost_config,
+    seed,
+):
+    model = Pipeline([
+        ("preprocessing", preprocessor),
+        (
+            "model",
+            XGBClassifier(
+                **best_params,
+                random_state=seed,
+                n_jobs=xgboost_config["n_jobs"],
+                eval_metric=xgboost_config["eval_metric"],
+                objective=xgboost_config["objective"],
+            ),
+        ),
+    ])
+
+    scores = cross_val_score(
+        model,
+        X_train,
+        y_train,
+        cv=optuna_config["cv_folds"],
+        scoring=optuna_config["scoring"],
+        n_jobs=optuna_config["n_jobs"],
+    )
+
+    scores = np.asarray(
+        scores,
+        dtype=float,
+    )
+
+    return {
+        "scores": scores.tolist(),
+        "mean": float(scores.mean()),
+        "std": float(scores.std()),
+        "scoring": optuna_config["scoring"],
+    }

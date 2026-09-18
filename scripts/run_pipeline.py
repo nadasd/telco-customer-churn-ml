@@ -6,7 +6,12 @@ from mlflow.models import ModelSignature
 from mlflow.types.schema import Schema, ColSpec
 import hashlib
 import subprocess
-
+import tempfile
+from src.evaluate import evaluate_model
+from src.model_validation import (
+    create_validation_artifacts,
+    evaluate_cv_stability,
+)
 
 # ============================================================
 # Add project root to Python path
@@ -225,6 +230,27 @@ def main():
 
         print("\nBest parameters:")
         print(best_params)
+        print("\nEvaluating cross-validation stability...")
+
+        cv_results = evaluate_cv_stability(
+            X_train=X_train,
+            y_train=y_train,
+            preprocessor=preprocessor,
+            best_params=best_params,
+            optuna_config=optuna_config,
+            xgboost_config=xgboost_config,
+            seed=seed,
+        )
+
+        print(
+            f"CV {cv_results['scoring']} mean: "
+            f"{cv_results['mean']:.4f}"
+        )
+
+        print(
+            f"CV {cv_results['scoring']} std: "
+            f"{cv_results['std']:.4f}"
+        )
 
         # Log hyperparameters in MLflow
         mlflow.log_params(best_params)
@@ -232,6 +258,10 @@ def main():
         mlflow.log_param("artifact_version", ARTIFACT_VERSION)
         mlflow.log_param("n_trials", optuna_config["n_trials"])
         mlflow.log_param("min_precision", MIN_PRECISION)
+        mlflow.log_param(
+            "cv_scoring",
+            cv_results["scoring"],
+        )
 
 
         # ====================================================
@@ -288,33 +318,150 @@ def main():
 
 
         # ====================================================
-        # 9. Final evaluation using TEST
+        # 9. Model validation
         # ====================================================
 
-        print("\n9. Final evaluation using test...")
+        print("\n9. Evaluating generalization...")
 
-        results = evaluate_model(
+        train_results = evaluate_model(
+            model=model,
+            X_test_processed=X_train_processed,
+            y_test=y_train,
+            threshold=threshold,
+            dataset_name="Train",
+        )
+
+        validation_results = evaluate_model(
+            model=model,
+            X_test_processed=X_val_processed,
+            y_test=y_val,
+            threshold=threshold,
+            dataset_name="Validation",
+        )
+
+        test_results = evaluate_model(
             model=model,
             X_test_processed=X_test_processed,
             y_test=y_test,
-            threshold=threshold
+            threshold=threshold,
+            dataset_name="Test",
         )
 
+        # Keep backward compatibility:
+        # final "results" means test results.
+        results = test_results
+        generalization_gaps = {
+            "f1_train_minus_validation": (
+                train_results["f1_score"]
+                - validation_results["f1_score"]
+            ),
+            "f1_train_minus_test": (
+                train_results["f1_score"]
+                - test_results["f1_score"]
+            ),
+            "recall_train_minus_validation": (
+                train_results["recall"]
+                - validation_results["recall"]
+            ),
+            "recall_train_minus_test": (
+                train_results["recall"]
+                - test_results["recall"]
+            ),
+        }
 
+        print("\nGeneralization Gaps")
+        print("-------------------")
+
+        for name, value in generalization_gaps.items():
+            print(f"{name}: {value:.4f}")
+
+
+               # ====================================================
+        # 10. Log validation metrics in MLflow
         # ====================================================
-        # 10. Log final TEST metrics in MLflow
+
+        print("\n10. Logging validation metrics to MLflow...")
+
+        metric_names = [
+            "accuracy",
+            "precision",
+            "recall",
+            "f1_score",
+            "roc_auc",
+            "pr_auc",
+            "predicted_positive_rate",
+            "tn",
+            "fp",
+            "fn",
+            "tp",
+        ]
+
+        all_split_results = {
+            "train": train_results,
+            "validation": validation_results,
+            "test": test_results,
+        }
+
+        mlflow_metrics = {}
+
+        for split_name, split_results in all_split_results.items():
+            for metric_name in metric_names:
+                mlflow_metrics[
+                    f"{split_name}_{metric_name}"
+                ] = split_results[metric_name]
+
+        mlflow_metrics.update(
+            generalization_gaps
+        )
+
+        mlflow_metrics["cv_score_mean"] = (
+            cv_results["mean"]
+        )
+
+        mlflow_metrics["cv_score_std"] = (
+            cv_results["std"]
+        )
+
+        mlflow.log_metrics(
+            mlflow_metrics
+        )
+                # ====================================================
+        # Create model validation artifacts
         # ====================================================
 
-        print("\n10. Logging metrics to MLflow...")
+        val_proba = model.predict_proba(
+            X_val_processed
+        )[:, 1]
 
-        mlflow.log_metrics({
-            "accuracy": results["accuracy"],
-            "precision": results["precision"],
-            "recall": results["recall"],
-            "f1_score": results["f1_score"]
-        })
+        test_proba = model.predict_proba(
+            X_test_processed
+        )[:, 1]
 
+        metrics_summary = {
+            "train": train_results,
+            "validation": validation_results,
+            "test": test_results,
+            "generalization_gaps": generalization_gaps,
+            "cross_validation": cv_results,
+        }
 
+        with tempfile.TemporaryDirectory() as temp_dir:
+
+            create_validation_artifacts(
+                y_val=y_val,
+                val_proba=val_proba,
+                y_test=y_test,
+                test_proba=test_proba,
+                selected_threshold=threshold,
+                threshold_config=threshold_config,
+                metrics_summary=metrics_summary,
+                output_dir=temp_dir,
+            )
+
+            mlflow.log_artifacts(
+                temp_dir,
+                artifact_path="model_validation",
+            )
         # ====================================================
         # 11. Log model in MLflow
         # ====================================================
