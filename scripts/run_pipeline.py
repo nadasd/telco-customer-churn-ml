@@ -1,16 +1,46 @@
-import sys
 import os
-import mlflow
-import mlflow.pyfunc
-from mlflow.models import ModelSignature
-from mlflow.types.schema import Schema, ColSpec
+import sys
+
+# Add project root to Python path BEFORE importing src.*
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import hashlib
 import subprocess
 import tempfile
+
+import mlflow
+import mlflow.pyfunc
+import numpy as np
+import random
+
+from mlflow.models import ModelSignature
+from mlflow.types.schema import Schema, ColSpec
+
+from src.config import load_training_config
+from src.load_data import load_data
+from src.clean import clean_data
+from src.validate_data import validate_data
+from src.split_data import split_data
+from src.preprocess import create_preprocessor
+from src.tune import tune_model
+from src.train import train_model
+from src.select_threshold import select_threshold
 from src.evaluate import evaluate_model
 from src.model_validation import (
     create_validation_artifacts,
     evaluate_cv_stability,
+)
+from src.model_artifact import (
+    TelcoChurnArtifact,
+    build_artifact_metadata,
+    build_raw_feature_schema,
+    build_raw_input_example,
+    build_serving_pipeline,
 )
 
 # ============================================================
