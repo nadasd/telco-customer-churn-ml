@@ -1,34 +1,135 @@
 import great_expectations as gx
 
 
+REQUIRED_COLUMNS = [
+    "gender",
+    "seniorcitizen",
+    "partner",
+    "dependents",
+    "tenure",
+    "phoneservice",
+    "multiplelines",
+    "internetservice",
+    "onlinesecurity",
+    "onlinebackup",
+    "deviceprotection",
+    "techsupport",
+    "streamingtv",
+    "streamingmovies",
+    "contract",
+    "paperlessbilling",
+    "paymentmethod",
+    "monthlycharges",
+    "totalcharges",
+    "churn",
+]
+
+
+CATEGORICAL_VALUE_SETS = {
+    "gender": ["male", "female"],
+    "partner": ["yes", "no"],
+    "dependents": ["yes", "no"],
+    "phoneservice": ["yes", "no"],
+    "multiplelines": [
+        "yes",
+        "no",
+        "no phone service",
+    ],
+    "internetservice": [
+        "dsl",
+        "fiber optic",
+        "no",
+    ],
+    "onlinesecurity": [
+        "yes",
+        "no",
+        "no internet service",
+    ],
+    "onlinebackup": [
+        "yes",
+        "no",
+        "no internet service",
+    ],
+    "deviceprotection": [
+        "yes",
+        "no",
+        "no internet service",
+    ],
+    "techsupport": [
+        "yes",
+        "no",
+        "no internet service",
+    ],
+    "streamingtv": [
+        "yes",
+        "no",
+        "no internet service",
+    ],
+    "streamingmovies": [
+        "yes",
+        "no",
+        "no internet service",
+    ],
+    "contract": [
+        "month-to-month",
+        "one year",
+        "two year",
+    ],
+    "paperlessbilling": [
+        "yes",
+        "no",
+    ],
+    "paymentmethod": [
+        "electronic check",
+        "mailed check",
+        "bank transfer (automatic)",
+        "credit card (automatic)",
+    ],
+}
+
+
 def validate_data(df):
     """Validate the cleaned Telco Customer Churn dataset."""
 
     print("Starting data validation...")
 
-    # Create Great Expectations context
     context = gx.get_context(mode="file")
 
-    # Get existing datasource or create it
+    # --------------------------------------------------
+    # Data source
+    # --------------------------------------------------
+
     try:
-        data_source = context.data_sources.get("telco_data_source")
+        data_source = context.data_sources.get(
+            "telco_data_source"
+        )
     except Exception:
         data_source = context.data_sources.add_pandas(
             name="telco_data_source"
         )
 
-    # Get existing data asset or create it
+    # --------------------------------------------------
+    # Data asset
+    # --------------------------------------------------
+
     try:
-        data_asset = data_source.get_asset("telco_data")
+        data_asset = data_source.get_asset(
+            "telco_data"
+        )
     except Exception:
         data_asset = data_source.add_dataframe_asset(
             name="telco_data"
         )
 
-    # Get existing batch definition or create it
+    # --------------------------------------------------
+    # Batch definition
+    # --------------------------------------------------
+
     try:
-        batch_definition = data_asset.get_batch_definition(
-            "telco_batch"
+        batch_definition = (
+            data_asset.get_batch_definition(
+                "telco_batch"
+            )
         )
     except Exception:
         batch_definition = (
@@ -37,125 +138,99 @@ def validate_data(df):
             )
         )
 
-    # Create batch from DataFrame
     batch = batch_definition.get_batch(
-        batch_parameters={"dataframe": df}
+        batch_parameters={
+            "dataframe": df
+        }
     )
 
-    # -----------------------------
+    # --------------------------------------------------
     # Expectations
-    # -----------------------------
+    # --------------------------------------------------
 
-    expectations = [
+    expectations = []
 
-        # Required columns
-        gx.expectations.ExpectColumnToExist(
-            column="gender"
-        ),
+    # All expected cleaned columns must exist
+    for column in REQUIRED_COLUMNS:
+        expectations.append(
+            gx.expectations.ExpectColumnToExist(
+                column=column
+            )
+        )
 
-        gx.expectations.ExpectColumnToExist(
-            column="seniorcitizen"
-        ),
+    # No missing values in the canonical cleaned dataset
+    for column in REQUIRED_COLUMNS:
+        expectations.append(
+            gx.expectations.ExpectColumnValuesToNotBeNull(
+                column=column
+            )
+        )
 
-        gx.expectations.ExpectColumnToExist(
-            column="partner"
-        ),
+    # Allowed categorical values
+    for column, values in CATEGORICAL_VALUE_SETS.items():
+        expectations.append(
+            gx.expectations.ExpectColumnValuesToBeInSet(
+                column=column,
+                value_set=values
+            )
+        )
 
-        gx.expectations.ExpectColumnToExist(
-            column="dependents"
-        ),
-
-        gx.expectations.ExpectColumnToExist(
-            column="tenure"
-        ),
-
-        gx.expectations.ExpectColumnToExist(
-            column="monthlycharges"
-        ),
-
-        gx.expectations.ExpectColumnToExist(
-            column="totalcharges"
-        ),
-
-        gx.expectations.ExpectColumnToExist(
-            column="churn"
-        ),
-
-        # No missing values
-        gx.expectations.ExpectColumnValuesToNotBeNull(
-            column="churn"
-        ),
-
-        gx.expectations.ExpectColumnValuesToNotBeNull(
-            column="tenure"
-        ),
-
-        gx.expectations.ExpectColumnValuesToNotBeNull(
-            column="monthlycharges"
-        ),
-
-        gx.expectations.ExpectColumnValuesToNotBeNull(
-            column="totalcharges"
-        ),
-
-        # Categorical values
+    # Senior citizen
+    expectations.append(
         gx.expectations.ExpectColumnValuesToBeInSet(
-            column="gender",
-            value_set=["male", "female"]
-        ),
+            column="seniorcitizen",
+            value_set=[0, 1]
+        )
+    )
 
-        gx.expectations.ExpectColumnValuesToBeInSet(
-            column="partner",
-            value_set=["yes", "no"]
-        ),
-
-        gx.expectations.ExpectColumnValuesToBeInSet(
-            column="dependents",
-            value_set=["yes", "no"]
-        ),
-
-        # Target
+    # Target
+    expectations.append(
         gx.expectations.ExpectColumnValuesToBeInSet(
             column="churn",
             value_set=[0, 1]
-        ),
+        )
+    )
 
-        # Numeric ranges
+    # Numeric ranges
+    expectations.append(
         gx.expectations.ExpectColumnValuesToBeBetween(
             column="tenure",
             min_value=0,
             max_value=72
-        ),
+        )
+    )
 
+    expectations.append(
         gx.expectations.ExpectColumnValuesToBeBetween(
             column="monthlycharges",
             min_value=0
-        ),
+        )
+    )
 
+    expectations.append(
         gx.expectations.ExpectColumnValuesToBeBetween(
             column="totalcharges",
             min_value=0
-        ),
-    ]
+        )
+    )
 
-    # -----------------------------
+    # --------------------------------------------------
     # Run validation
-    # -----------------------------
+    # --------------------------------------------------
 
     failed_expectations = []
 
     for expectation in expectations:
-
         result = batch.validate(expectation)
 
         if not result["success"]:
             failed_expectations.append(
-                expectation.expectation_type
+                type(expectation).__name__
             )
 
-    # -----------------------------
+    # --------------------------------------------------
     # Results
-    # -----------------------------
+    # --------------------------------------------------
 
     total_checks = len(expectations)
     failed_checks = len(failed_expectations)
