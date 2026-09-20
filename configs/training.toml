@@ -14,6 +14,7 @@ stratify = true
 [optuna]
 n_trials = 100
 sampler = "TPESampler"
+seed = 42
 direction = "maximize"
 cv_folds = 5
 scoring = "recall"
@@ -58,3 +59,9 @@ tracking_uri = "http://127.0.0.1:5000"
 experiment_name = "Telco-Customer-Churn"
 registered_model_name = "TelcoChurnXGBoost"
 artifact_name = "model"
+[acceptance]
+minimum_precision = 0.40
+minimum_recall = 0.85
+minimum_f1 = 0.50
+maximum_f1_train_test_gap = 0.10
+selection_metric = "f1"

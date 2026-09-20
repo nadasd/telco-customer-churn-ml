@@ -42,6 +42,10 @@ from src.model_artifact import (
     build_raw_input_example,
     build_serving_pipeline,
 )
+from src.model_acceptance import (
+    check_model_acceptance,
+    print_acceptance_report,
+)
 
 # ============================================================
 # Add project root to Python path
@@ -406,7 +410,35 @@ def main():
             print(f"{name}: {value:.4f}")
 
 
-               # ====================================================
+        # ====================================================
+        # 12. Model acceptance gate
+        # ====================================================
+
+        print("\n12. Checking model acceptance...")
+
+        acceptance_config = config["acceptance"]
+
+        test_metrics = {
+            "precision": test_results["precision"],
+            "recall": test_results["recall"],
+            "f1": test_results["f1"],
+            "f1_gap": generalization_gaps["f1_train_minus_test"],
+        }
+
+        acceptance_result = check_model_acceptance(
+            test_metrics,
+            acceptance_config,
+        )
+
+        print_acceptance_report(acceptance_result)
+
+        if not acceptance_result["accepted"]:
+            raise RuntimeError(
+                "Model rejected: acceptance criteria not satisfied"
+            )
+
+
+        # ====================================================
         # 10. Log validation metrics in MLflow
         # ====================================================
 
