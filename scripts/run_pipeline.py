@@ -253,14 +253,14 @@ def main():
 
         print("\n6. Starting Optuna tuning...")
 
-        best_params = tune_model(
-            X_train,
-            y_train,
-            preprocessor,
-            optuna_config=optuna_config,
-            xgboost_config=xgboost_config,
-            seed=seed,
-        )
+        best_params, best_cv_score = tune_model(
+    X_train,
+    y_train,
+    preprocessor,
+    optuna_config=optuna_config,
+    xgboost_config=xgboost_config,
+    seed=seed,
+)
 
         print("\nBest parameters:")
         print(best_params)
@@ -296,8 +296,20 @@ def main():
             "cv_scoring",
             cv_results["scoring"],
         )
+        mlflow.log_param(
+    "optuna_seed",
+    optuna_config["seed"]
+        )
 
+        mlflow.log_param(
+    "cv_folds",
+    optuna_config["cv_folds"]
+        )
 
+        mlflow.log_param(
+    "optuna_scoring",
+    optuna_config["scoring"]
+        )
         # ====================================================
         # 7. Train final model
         # ====================================================
@@ -349,8 +361,6 @@ def main():
             "threshold",
             threshold
         )
-
-
         # ====================================================
         # 9. Model validation
         # ====================================================
@@ -484,9 +494,10 @@ def main():
             cv_results["std"]
         )
 
-        mlflow.log_metrics(
-            mlflow_metrics
-        )
+        mlflow.log_metric(
+    "best_optuna_cv_recall",
+    best_cv_score
+)
                 # ====================================================
         # Create model validation artifacts
         # ====================================================
