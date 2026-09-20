@@ -421,7 +421,7 @@ def main():
         test_metrics = {
             "precision": test_results["precision"],
             "recall": test_results["recall"],
-            "f1": test_results["f1"],
+            "f1": test_results["f1_score"],
             "f1_gap": generalization_gaps["f1_train_minus_test"],
         }
 
