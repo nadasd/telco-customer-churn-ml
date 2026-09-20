@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - "scripts/run_pipeline.py"
+      - "configs/training.toml"
+      - "src/config.py"
       - "src/clean.py"
       - "src/validate_data.py"
       - "src/split_data.py"
@@ -23,6 +25,8 @@ on:
       - main
     paths:
       - "scripts/run_pipeline.py"
+      - "configs/training.toml"
+      - "src/config.py"
       - "src/clean.py"
       - "src/validate_data.py"
       - "src/split_data.py"

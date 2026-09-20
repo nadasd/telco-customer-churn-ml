@@ -3,6 +3,15 @@ import pandas as pd
 from src.split_data import split_data
 
 
+SPLIT_KWARGS = {
+    "train_fraction": 0.70,
+    "validation_fraction": 0.15,
+    "test_fraction": 0.15,
+    "random_state": 42,
+    "stratify": True,
+}
+
+
 def make_dataset(n_rows=100):
     return pd.DataFrame(
         {
@@ -23,7 +32,7 @@ def test_split_data_sizes_and_no_overlap():
         y_train,
         y_val,
         y_test,
-    ) = split_data(df)
+    ) = split_data(df, **SPLIT_KWARGS)
 
     # Expected 70 / 15 / 15 split
     assert len(X_train) == 70
@@ -56,8 +65,8 @@ def test_split_data_sizes_and_no_overlap():
 def test_split_data_is_deterministic():
     df = make_dataset()
 
-    split_1 = split_data(df)
-    split_2 = split_data(df)
+    split_1 = split_data(df, **SPLIT_KWARGS)
+    split_2 = split_data(df, **SPLIT_KWARGS)
 
     X_train_1, X_val_1, X_test_1, *_ = split_1
     X_train_2, X_val_2, X_test_2, *_ = split_2
@@ -77,7 +86,7 @@ def test_split_data_preserves_class_distribution():
         y_train,
         y_val,
         y_test,
-    ) = split_data(df)
+    ) = split_data(df, **SPLIT_KWARGS)
 
     original_rate = df["churn"].mean()
 

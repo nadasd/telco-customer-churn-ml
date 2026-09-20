@@ -4,6 +4,13 @@ import pytest
 from src.select_threshold import select_threshold
 
 
+THRESHOLD_KWARGS = {
+    "minimum": 0.05,
+    "maximum": 0.50,
+    "step": 0.01,
+}
+
+
 class DummyModel:
     def __init__(self, positive_probabilities):
         self.positive_probabilities = np.asarray(
@@ -49,6 +56,7 @@ def test_select_threshold_prioritizes_recall_then_f1():
         X_val_processed=X_val_processed,
         y_val=y_val,
         min_precision=0.40,
+        **THRESHOLD_KWARGS,
     )
 
     assert threshold == pytest.approx(
@@ -69,6 +77,7 @@ def test_select_threshold_uses_positive_class_probability():
         model,
         X_val_processed,
         y_val,
+        **THRESHOLD_KWARGS,
         min_precision=0.50,
     )
 
@@ -91,5 +100,6 @@ def test_select_threshold_raises_when_precision_requirement_is_impossible():
             model=model,
             X_val_processed=X_val_processed,
             y_val=y_val,
+            **THRESHOLD_KWARGS,
             min_precision=1.01,
         )

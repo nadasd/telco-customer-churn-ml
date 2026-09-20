@@ -12,7 +12,9 @@ def train_model(
     y_val: pd.Series,
     X_test: pd.DataFrame,
     y_test: pd.Series,
-    best_params: dict
+    best_params: dict,
+    xgboost_config: dict,
+    seed: int,
 ):
 
     # 1. Create preprocessor using TRAIN only
@@ -36,9 +38,10 @@ def train_model(
     # 5. Create model with Optuna's best parameters
     model = XGBClassifier(
         **best_params,
-        random_state=42,
-        n_jobs=-1,
-        eval_metric="logloss"
+        random_state=seed,
+        n_jobs=xgboost_config["n_jobs"],
+        eval_metric=xgboost_config["eval_metric"],
+        objective=xgboost_config["objective"],
     )
 
     # 6. Train only on TRAIN

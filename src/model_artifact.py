@@ -18,7 +18,6 @@ from src.clean import clean_data
 
 ARTIFACT_VERSION = "1.0.0"
 REGISTERED_MODEL_NAME = "TelcoChurnXGBoost"
-RANDOM_SEED = 42
 PROBABILITY_COLUMN = "churn_probability"
 DECISION_COLUMN = "churn_prediction"
 
@@ -136,13 +135,16 @@ def build_artifact_metadata(
     threshold: float,
     model_parameters: dict[str, Any],
     test_metrics: dict[str, Any],
+    artifact_version: str,
+    registered_model_name: str,
+    random_seed: int,
 ) -> dict[str, Any]:
     """Create metadata embedded both in MLmodel and the Python model."""
 
     return {
-        "artifact_version": ARTIFACT_VERSION,
-        "registered_model_name": REGISTERED_MODEL_NAME,
-        "random_seed": RANDOM_SEED,
+        "artifact_version": artifact_version,
+        "registered_model_name": registered_model_name,
+        "random_seed": random_seed,
         "decision_threshold": float(threshold),
         "raw_feature_schema": raw_feature_schema,
         "model_parameters": {

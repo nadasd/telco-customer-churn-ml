@@ -21,7 +21,14 @@ def test_evaluate_model_uses_positive_class_threshold_and_expected_metrics():
         [3.0],
         [4.0],
     ])
-    y_test = np.array([0, 1, 1, 0])
+
+    y_test = np.array([
+        0,
+        1,
+        1,
+        0,
+    ])
+
     model = RecordingModel(
         probabilities=np.array([
             [0.90, 0.10],
@@ -39,10 +46,31 @@ def test_evaluate_model_uses_positive_class_threshold_and_expected_metrics():
     )
 
     assert model.received_input is X_test_processed
-    assert results == pytest.approx({
-        "accuracy": 0.75,
-        "precision": 2 / 3,
-        "recall": 1.0,
-        "f1_score": 0.8,
-        "threshold": 0.50,
-    })
+
+    assert results["accuracy"] == pytest.approx(
+        0.75
+    )
+
+    assert results["precision"] == pytest.approx(
+        2 / 3
+    )
+
+    assert results["recall"] == pytest.approx(
+        1.0
+    )
+
+    assert results["f1_score"] == pytest.approx(
+        0.8
+    )
+
+    assert results["threshold"] == pytest.approx(
+        0.50
+    )
+
+    assert results["tn"] == 1
+    assert results["fp"] == 1
+    assert results["fn"] == 0
+    assert results["tp"] == 2
+
+    assert 0 <= results["roc_auc"] <= 1
+    assert 0 <= results["pr_auc"] <= 1
