@@ -85,10 +85,9 @@ def tune_model(
         return scores.mean()
 
     study = optuna.create_study(
-        direction=optuna_config["direction"],
         sampler=optuna.samplers.TPESampler(
-            seed=config["optuna"]["seed"]
-        )
+    seed=optuna_config["seed"]
+)
     )
 
     study.optimize(
