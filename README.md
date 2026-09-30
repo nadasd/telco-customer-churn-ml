@@ -1,256 +1,374 @@
-# Telco Customer Churn MLOps
+# Telco Customer Churn Prediction --- End-to-End ML & MLOps Pipeline
+
+![Python](https://img.shields.io/badge/Python-3.12-blue) ![Machine
+Learning](https://img.shields.io/badge/Machine%20Learning-XGBoost-orange)
+![MLOps](https://img.shields.io/badge/MLOps-MLflow-green)
+![API](https://img.shields.io/badge/API-FastAPI-red)
+![Docker](https://img.shields.io/badge/Docker-Containerization-blue)
 
 ## Overview
 
-This repository implements a modular churn-prediction workflow for the Telco Customer Churn dataset: cleaning, Great Expectations validation, stratified splitting, Optuna/XGBoost training, validation-based threshold selection, MLflow tracking, a self-contained inference artifact, FastAPI, Gradio, Docker Compose, and GitHub Actions.
+This project implements an end-to-end machine learning pipeline for
+**customer churn prediction** using the Telco Customer Churn dataset.
 
-It is an MLOps foundation rather than a complete production platform. Monitoring, drift detection, automated promotion, and rollback are not implemented. Railway configuration is external to this repository.
+The objective is to predict customers with a high probability of leaving
+a telecom service provider and provide a reproducible ML workflow
+covering the complete machine learning lifecycle:
 
-## Business Problem
+**Data Validation → Data Preparation → Model Training → Optimization →
+Experiment Tracking → Model Serving → Deployment**
 
-The model predicts customer churn. Recall is prioritized because missing a likely churner can prevent retention action. Training enforces minimum validation precision `0.40`, then selects the threshold with highest recall and F1 among valid candidates. No ROI or intervention policy is claimed.
+The project follows MLOps best practices including modular code
+organization, experiment tracking, model packaging, API deployment,
+testing, and containerization.
 
-## Architecture
+------------------------------------------------------------------------
 
-```mermaid
+# Business Problem
+
+Customer retention is a major challenge in the telecommunications
+industry.
+
+Identifying customers likely to churn allows companies to implement
+targeted retention strategies before losing them.
+
+This project focuses on a binary classification problem:
+
+-   **Input:** Customer profile and service information
+-   **Output:** Probability of customer churn
+
+The model prioritizes **recall** in order to minimize missed churn
+cases.
+
+------------------------------------------------------------------------
+
+# Project Architecture
+
+``` mermaid
 flowchart LR
-  CSV[Raw CSV] --> CLEAN[Clean]
-  CLEAN --> GX[Great Expectations]
-  GX --> SPLIT[70/15/15 stratified split]
-  SPLIT --> PREP[Train-only preprocessing]
-  PREP --> TUNE[Optuna 5-fold recall objective]
-  TUNE --> TRAIN[XGBoost]
-  TRAIN --> THRESH[Validation threshold]
-  THRESH --> EVAL[Test evaluation]
-  EVAL --> MLF[MLflow run and pyfunc artifact]
-  MLF --> API[FastAPI]
-  API --> UI[Gradio]
-  subgraph Local[Local Compose]
-    MLFLOW[MLflow server]
-    API
-    UI
-  end
-  CI[GitHub Actions] -. checks .-> API
-  RAILWAY[External Railway configuration] -. deploys configured services .-> API
+A[Raw Customer Data] --> B[Data Cleaning]
+B --> C[Data Validation - Great Expectations]
+C --> D[Train Validation Test Split]
+D --> E[Feature Engineering]
+E --> F[XGBoost Model]
+F --> G[Optuna Optimization]
+G --> H[Threshold Optimization]
+H --> I[Model Evaluation]
+I --> J[MLflow Tracking]
+J --> K[Model Artifact]
+K --> L[FastAPI API]
+L --> M[Gradio Interface]
 ```
 
-MLflow is local tracking/registry infrastructure. The API serves the bundled artifact and does not require MLflow at inference time.
+------------------------------------------------------------------------
 
-## Project Status
+# Machine Learning Pipeline
 
-| Capability | Status |
-|---|---|
-| Cleaning, data validation, stratified splitting | Implemented |
-| Optuna/XGBoost training and threshold selection | Implemented |
-| MLflow tracking and registered pyfunc logging | Implemented locally |
-| Self-contained tracked inference artifact | Implemented; artifact v2 |
-| FastAPI, Gradio, Docker Compose | Implemented |
-| Unit/integration tests and CI | Implemented |
-| Pipeline smoke workflow | Implemented separately from standard CI |
-| Railway deployment | Externally configured; repository evidence is limited |
-| Monitoring, drift detection, promotion, rollback | Not implemented |
+Implemented workflow:
 
-## Technology Stack
+1.  Data preparation
+2.  Data validation
+3.  Feature engineering
+4.  Model training
+5.  Hyperparameter optimization
+6.  Threshold selection
+7.  Model evaluation
 
-Python 3.12, pandas, NumPy, scikit-learn, XGBoost, Optuna, Great Expectations, MLflow, FastAPI, Pydantic, Uvicorn, Gradio, Requests, Docker, Docker Compose, GitHub Actions, pytest, and Railway.
+Algorithm:
 
-## Repository Structure
+-   XGBoost Classifier
 
-```text
-src/api/                 FastAPI application, schemas, and service
-src/ui/                  Gradio application
-src/clean.py             Cleaning and target encoding
-src/validate_data.py     Great Expectations validation
-src/split_data.py        Stratified split
-src/preprocess.py        Numeric/categorical preprocessing
-src/tune.py              Optuna search and CV
-src/train.py             XGBoost fitting
-src/select_threshold.py  Threshold selection
-src/evaluate.py          Test metrics
-src/model_artifact.py    Self-contained MLflow pyfunc model
-scripts/run_pipeline.py  Canonical training orchestration
-configs/training.toml    Central training configuration
-src/config.py             Training configuration loader
-tests/                   Unit, API, artifact, UI, and smoke tests
-model/                   Tracked inference artifact and metadata
-.github/workflows/       CI and pipeline smoke workflow
-Dockerfile, Dockerfile.ui, Dockerfile.mlflow, compose.yaml
+Optimization:
+
+-   Optuna hyperparameter tuning
+-   Cross-validation
+
+------------------------------------------------------------------------
+
+# Model Strategy
+
+The default classification threshold of 0.5 is not always optimal for
+churn prediction.
+
+A validation-based threshold optimization strategy was implemented:
+
+-   Minimum precision constraint
+-   Recall maximization
+-   F1-score optimization
+
+This approach improves the detection of potential churn customers.
+
+------------------------------------------------------------------------
+
+# Results
+
+  Metric         Score
+  ----------- --------
+  Accuracy      62.06%
+  Precision     40.54%
+  Recall        91.46%
+  F1-score      56.17%
+
+Selected classification threshold:
+
+``` text
+0.10
 ```
 
-## Data and Validation
+------------------------------------------------------------------------
 
-The current raw CSV is 7,043 rows by 21 columns: `customerID`, 19 raw features, and `Churn`. Churn has 5,174 `No` and 1,869 `Yes` values. It is ignored by Git and expected at:
+# MLOps Implementation
 
-```text
-data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv
-```
+## Experiment Tracking
 
-Cleaning normalizes names and strings, drops `customerID`, converts `TotalCharges` to numeric, fills invalid/missing values with `0`, and maps the target to `0/1`. The observed file has 11 blank `TotalCharges` values.
+Implemented with:
 
-Great Expectations validates the cleaned 20-column dataset: required columns, no nulls, allowed categories, binary `SeniorCitizen`/`Churn`, tenure `0..72`, and non-negative charges. Validation runs before splitting. No dataset source URL or license is documented.
+-   MLflow
 
-## Machine Learning Pipeline
+Tracked information:
 
-The canonical entry point is `scripts/run_pipeline.py`.
+-   Model parameters
+-   Training configuration
+-   Dataset information
+-   Evaluation metrics
+-   Model artifacts
 
-- Split: 70% train, 15% validation, 15% test; stratified; `random_state=42`.
-- Preprocessing: `StandardScaler` for numeric fields and `OneHotEncoder(handle_unknown="ignore")` for categorical fields, fitted on train only.
-- Tuning: 100 Optuna trials by default; 5-fold cross-validation; recall objective.
-- XGBoost: best Optuna parameters, `random_state=42`, `eval_metric="logloss"`.
-- Thresholds: `0.05..0.50` in `0.01` steps; precision must be at least `0.40`; maximize recall, then F1.
-- Test metrics are computed after threshold selection on validation data.
+------------------------------------------------------------------------
 
-Optuna uses a seeded TPESampler. Optuna/CV and XGBoost use the configured `n_jobs` value (`-1` currently), so exact bit-for-bit reproduction can still depend on the runtime, dataset bytes, platform, and parallel execution order.
+## Model Packaging
 
-## Model Performance
+The final model artifact contains:
 
-These are the authoritative values embedded in the tracked v2 artifact and its associated test evaluation, not smoke-test metrics:
+-   Data preprocessing pipeline
+-   Trained XGBoost model
+-   Decision threshold
+-   Metadata
 
-| Threshold | Accuracy | Precision | Recall | F1 |
-|---:|---:|---:|---:|---:|
-| 0.10 | 0.6206 | 0.4054 | 0.9146 | 0.5617 |
+This reduces training-serving inconsistencies.
 
-No authoritative AUC, calibration, or business-cost metric is currently recorded.
+------------------------------------------------------------------------
 
-## MLflow, Registry, and Provenance
+## API Deployment
 
-The experiment is `Telco-Customer-Churn`. The current pipeline logs seed, artifact version, threshold, trial count, minimum precision, best parameters, dataset dimensions/source/SHA-256, Git commit, test metrics, model signature, and input example.
+A FastAPI application exposes the model through REST endpoints.
 
-The registered model name is `TelcoChurnXGBoost`. The tracked metadata identifies artifact version `1.0.0`, registry version `2`, and run `8dbd192a66df423588c5390ebe5ff4cc`. The local MLflow database contains historical records but is ignored and is not a portable production control plane.
+  Endpoint        Description
+  --------------- ---------------------------
+  GET /           API information
+  GET /health     Model availability check
+  POST /predict   Generate churn prediction
 
-The v2 MLflow run contains source commit `39fe2a1e909e2775c8973a0cf33e4755bcc4bb77` and source `scripts\\run_pipeline.py`. It does not contain all custom provenance fields now emitted by the pipeline; `model/MLmodel` itself has no Git commit.
+Example:
 
-Fixed split/XGBoost seeds, model parameters, artifact runtime metadata, dataset fingerprinting, and Git tags improve reproducibility. They do not guarantee exact retraining because the Optuna sampler, raw data, and local MLflow state are not fully versioned.
-
-## Inference Artifact
-
-`src/model_artifact.py` bundles the cleaner, fitted preprocessor, classifier, and threshold in one MLflow pyfunc model. It accepts and validates the 19 raw features in serving order, applies the training preprocessing, calls `predict_proba`, and returns `churn_probability` and `churn_prediction`. The decision is `1` for probability greater than or equal to the embedded threshold. Metadata includes schema, threshold, parameters, test metrics, artifact version, and runtime versions. This reduces train/serve skew.
-
-## FastAPI API
-
-Application: `src.api.main:app`.
-
-| Endpoint | Behavior |
-|---|---|
-| `GET /` | Service information and docs link |
-| `GET /health` | Model check; failure returns `503` |
-| `POST /predict` | Validates 19 raw features and returns probability, label, and model URI |
-
-Invalid Pydantic payloads return `422`; service/model failures return `503`. Extra fields are rejected. Example request:
-
-```json
+``` json
 {
-  "gender": "Female", "SeniorCitizen": 0, "Partner": "Yes", "Dependents": "No",
-  "tenure": 1, "PhoneService": "No", "MultipleLines": "No phone service",
-  "InternetService": "DSL", "OnlineSecurity": "No", "OnlineBackup": "Yes",
-  "DeviceProtection": "No", "TechSupport": "No", "StreamingTV": "No",
-  "StreamingMovies": "No", "Contract": "Month-to-month",
-  "PaperlessBilling": "Yes", "PaymentMethod": "Electronic check",
-  "MonthlyCharges": 29.85, "TotalCharges": 29.85
+  "churn_probability": 0.78,
+  "churn_prediction": 1
 }
 ```
 
-Launch with:
+------------------------------------------------------------------------
 
-```powershell
-python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+# Interactive Interface
+
+A Gradio interface was developed to interact with the prediction API.
+
+Features:
+
+-   Customer information input
+-   Real-time prediction
+-   Churn probability visualization
+
+------------------------------------------------------------------------
+
+# Technology Stack
+
+## Programming
+
+-   Python 3.12
+
+## Data Processing
+
+-   Pandas
+-   NumPy
+
+## Machine Learning
+
+-   Scikit-learn
+-   XGBoost
+-   Optuna
+
+## Data Validation
+
+-   Great Expectations
+
+## MLOps
+
+-   MLflow
+-   Model Registry
+-   Experiment Tracking
+
+## Backend
+
+-   FastAPI
+-   Pydantic
+-   Uvicorn
+
+## Engineering Tools
+
+-   Docker
+-   Docker Compose
+-   GitHub Actions
+-   Pytest
+
+------------------------------------------------------------------------
+
+# Repository Structure
+
+``` text
+telco-customer-churn-ml/
+
+├── src/
+│   ├── api/
+│   ├── ui/
+│   ├── preprocess.py
+│   ├── train.py
+│   ├── evaluate.py
+│   ├── tune.py
+│   └── model_artifact.py
+│
+├── scripts/
+│   └── run_pipeline.py
+│
+├── configs/
+├── tests/
+├── model/
+├── Dockerfile
+├── compose.yaml
+├── requirements.txt
+└── README.md
 ```
 
-`MODEL_URI` selects the artifact; Compose uses `/app/model`.
+------------------------------------------------------------------------
 
-## Gradio UI
+# Installation
 
-`src/ui/app.py` provides 19 controls and sends requests to the API; it does not perform inference. `API_URL` defaults to `http://127.0.0.1:8000` and Compose sets it to `http://api:8000`. It listens on port 7860:
+``` bash
+git clone https://github.com/nadasd/telco-customer-churn-ml.git
+cd telco-customer-churn-ml
 
-```powershell
-python -m src.ui.app
-```
-
-## Docker and Local Services
-
-Compose defines `mlflow` on port 5000, `api` on 8000, and `ui` on 7860. The UI depends on the healthy API. The API image bundles `/app/model`; MLflow is not needed for serving. MLflow uses local `mlflow.db` and `mlartifacts` bind mounts, both ignored by Git.
-
-```powershell
-docker compose config -q
-docker compose up -d --build
-docker compose ps
-docker compose down
-```
-
-CI validates Compose syntax and builds API/UI images, but does not run a runtime container smoke test or build the MLflow image.
-
-## CI and Testing
-
-Standard CI runs on pushes to `main`/ `deploy/railway` and pull requests to `main`. It installs dependencies, validates Compose, compiles Python, runs tests except `tests/test_pipeline_smoke.py`, and builds API/UI images.
-
-The separate smoke workflow runs for ML-related paths or manual dispatch. It executes real orchestration on a synthetic temporary Telco-like dataset, temporary MLflow storage, and one Optuna trial; it reloads the artifact and checks predictions/provenance. Synthetic metrics are not production performance.
-
-Tests cover cleaning, splitting, preprocessing, thresholding, evaluation, validation, API, artifact reload/parity, UI mapping, and pipeline orchestration. Latest local result:
-
-```text
-24 passed, 1 warning in 74.49s
-```
-
-The warning is a Starlette/AnyIO deprecation warning. Coverage is not measured.
-
-## Deployment
-
-Local development can run MLflow, API, and UI with Compose. The API Dockerfile honors Railway's `PORT`; the UI image starts Gradio.
-
-GitHub deployment records show Railway production deployments associated with `main`, but the repository contains no Railway configuration file, public URL, or versioned service mapping. No GitHub Action performs deployment. Railway is therefore externally configured rather than reproducible from repository files. The tracked production artifact is v2; this README does not create or promote a model version.
-
-## Running Locally
-
-The dataset must be obtained separately and placed at the path above:
-
-```powershell
-git clone <repository-url>
-cd Telco-Customer-Churn-ML
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m pip install -r requirements-dev.txt
-python -m pip install -r requirements-ui.txt
-python -m pytest -q
-docker compose up -d --build
-Invoke-RestMethod http://127.0.0.1:8000/health
+pip install -r requirements.txt
 ```
 
-Training uses the canonical script and `configs/training.toml` for the dataset path, seeds, split, Optuna, XGBoost, threshold, and MLflow settings:
+------------------------------------------------------------------------
 
-```powershell
+# Training the Model
+
+``` bash
 python scripts/run_pipeline.py
 ```
 
-The default is 100 Optuna trials; the smoke test uses one trial and temporary data/storage.
+The pipeline performs:
 
-## Prediction Flow
+-   Data preparation
+-   Validation
+-   Training
+-   Optimization
+-   Evaluation
+-   MLflow logging
 
-```text
-raw JSON (19 features)
- -> Pydantic validation
- -> pyfunc artifact
- -> cleaning and fitted preprocessing
- -> XGBoost predict_proba
- -> embedded threshold (v2: 0.10)
- -> churn_probability and churn_prediction
+------------------------------------------------------------------------
+
+# Running the API
+
+``` bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Current Limitations and Roadmap
+Documentation:
 
-- [x] Data validation, modular training, MLflow tracking, packaged preprocessing/classifier/threshold
-- [x] API/UI separation, tests, Docker images, CI, pipeline smoke workflow
-- [ ] Version dataset and MLflow state portably; the dataset/source/license are currently undocumented
-- [ ] Add inference logs, monitoring, drift detection, and alerting
-- [ ] Define automated promotion and rollback
-- [ ] Add Docker runtime smoke tests
-- [ ] Version Railway configuration and document service URLs
-- [ ] Seed the Optuna sampler and fully pin UI dependencies
+``` text
+http://localhost:8000/docs
+```
 
-## MLOps Concepts Demonstrated
+------------------------------------------------------------------------
 
-Data validation, modular training, stratified evaluation, threshold optimization under a precision constraint, experiment tracking, provenance, model packaging, train/serve parity, API/UI separation, testing, containerization, CI, and externally managed deployment.
+# Running with Docker
 
-## Dataset Attribution / License
+``` bash
+docker compose up --build
+```
 
-No dataset source URL or dataset license is documented, and no repository `LICENSE` file is present. Attribution and redistribution terms should be added before publishing or redistributing the data or a derived distribution.
+Services:
+
+  Service     Port
+  --------- ------
+  FastAPI     8000
+  Gradio      7860
+  MLflow      5000
+
+Stop:
+
+``` bash
+docker compose down
+```
+
+------------------------------------------------------------------------
+
+# Testing
+
+``` bash
+pytest
+```
+
+Coverage:
+
+-   Data preprocessing
+-   Model pipeline
+-   API endpoints
+-   Model artifact loading
+-   Prediction workflow
+
+------------------------------------------------------------------------
+
+# Future Improvements
+
+-   Add real-time monitoring
+-   Implement data drift detection
+-   Add automated model promotion
+-   Improve CI/CD deployment workflow
+-   Add model explainability using SHAP
+-   Add business cost optimization
+
+------------------------------------------------------------------------
+
+# Skills Demonstrated
+
+-   Machine Learning pipeline development
+-   Feature engineering
+-   Model optimization
+-   Classification threshold tuning
+-   MLOps workflow design
+-   Experiment tracking with MLflow
+-   Model packaging
+-   REST API deployment
+-   Docker containerization
+-   Testing and CI practices
+
+------------------------------------------------------------------------
+
+# Author
+
+**Nada Sadraoui**
+
+AI & Data Engineering Student
+
+Interested in:
+
+-   Artificial Intelligence
+-   Machine Learning
+-   MLOps
+-   Data Analytics
+
+GitHub: https://github.com/nadasd
