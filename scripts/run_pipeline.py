@@ -494,6 +494,8 @@ def main():
             cv_results["std"]
         )
 
+        mlflow.log_metrics(mlflow_metrics)
+
         mlflow.log_metric(
     "best_optuna_cv_recall",
     best_cv_score

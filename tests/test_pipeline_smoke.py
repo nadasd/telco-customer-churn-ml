@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import mlflow
 import pandas as pd
+import pytest
 
 from src.load_data import load_data as real_load_data
 from src.validate_data import validate_data as real_validate_data
@@ -293,6 +294,13 @@ def test_training_pipeline_smoke(
         assert run["tags.dataset_source"]
         assert len(run["tags.dataset_sha256"]) == 64
         assert run["tags.git_commit"]
+
+        # Keep scalar tracking consistent with the returned test evaluation.
+        for name in ("accuracy", "precision", "recall", "f1_score"):
+            assert run[f"metrics.test_{name}"] == pytest.approx(results[name])
+        assert run["metrics.cv_score_mean"] >= 0
+        assert run["metrics.cv_score_std"] >= 0
+        assert "metrics.f1_train_minus_test" in run.index
 
         # --------------------------------------------------
         # 8. Reload the artifact actually created

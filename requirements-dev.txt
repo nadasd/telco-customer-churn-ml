@@ -1,6 +1,6 @@
 -r requirements.txt
 
-# Test runner; test creation is intentionally deferred to the pipeline refactor.
+# Test runner for unit, integration, and pipeline smoke tests.
 pytest==8.4.2
 
 httpx2==2.12.0
