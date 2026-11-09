@@ -17,6 +17,10 @@ on:
       - "src/select_threshold.py"
       - "src/evaluate.py"
       - "src/model_artifact.py"
+      - "src/model_validation.py"
+      - "src/model_acceptance.py"
+      - "src/load_data.py"
+      - ".github/workflows/pipeline-smoke.yml"
       - "requirements*.txt"
       - "tests/test_pipeline_smoke.py"
 
@@ -36,6 +40,10 @@ on:
       - "src/select_threshold.py"
       - "src/evaluate.py"
       - "src/model_artifact.py"
+      - "src/model_validation.py"
+      - "src/model_acceptance.py"
+      - "src/load_data.py"
+      - ".github/workflows/pipeline-smoke.yml"
       - "requirements*.txt"
       - "tests/test_pipeline_smoke.py"
 

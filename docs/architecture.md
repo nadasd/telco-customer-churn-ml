@@ -2,7 +2,7 @@
 
 ## Training and experiment tracking
 
-Training is executed locally.
+Training runs locally or through the manually triggered `pipeline-validation.yml` workflow. The workflow downloads the reference IBM dataset at a pinned revision and verifies its SHA-256 checksum before training.
 
 The training pipeline includes:
 
@@ -15,9 +15,9 @@ The training pipeline includes:
 7. Final evaluation
 8. MLflow experiment tracking
 9. Model registration
-10. Deployment artifact export
+10. Self-contained model artifact packaging
 
-MLflow is used locally for experiment tracking and model registry.
+MLflow provides experiment tracking and a model registry in the local environment or the isolated CI runner.
 
 ## Local serving
 
@@ -27,11 +27,11 @@ The complete local MLOps environment is orchestrated with Docker Compose:
 - FastAPI
 - Gradio
 
-## Cloud deployment
+## Cloud deployment layout
 
-Railway is used only as a lightweight public demonstration environment.
+The API and UI Dockerfiles accept a platform-provided `PORT`, supporting deployment on services such as Railway.
 
-The Railway deployment contains:
+The inference deployment consists of:
 
 - FastAPI
 - Gradio
@@ -39,4 +39,4 @@ The Railway deployment contains:
 
 The cloud inference service does not require a running MLflow server.
 
-This architecture is intentional due to the zero-cost deployment constraint.
+This separation allows training and experiment tracking to remain independent of the inference services.
